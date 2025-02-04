@@ -6,6 +6,7 @@ const cookieParser = require("cookie-parser");
 const logger = require("morgan");
 const RateLimit = require("express-rate-limit");
 const helmet = require("helmet");
+const mongoose = require("mongoose");
 const compression = require("compression");
 const { errorMiddleware } = require("./middleware/errorMiddleware");
 const cors = require("cors");
@@ -32,6 +33,7 @@ app.use(
     },
   })
 );
+mongoose.set("strictQuery", false);
 app.use(compression());
 // view engine setup
 app.set("views", path.join(__dirname, "views"));
