@@ -4,8 +4,6 @@ const express = require("express");
 const path = require("path");
 const cookieParser = require("cookie-parser");
 const logger = require("morgan");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
 const RateLimit = require("express-rate-limit");
 const helmet = require("helmet");
 const compression = require("compression");
@@ -51,7 +49,7 @@ app.use("/users", usersRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
-  next(createError(404));
+  next(createError(404, "This is a not found error"));
 });
 
 // error handler

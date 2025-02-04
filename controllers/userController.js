@@ -48,6 +48,7 @@ exports.register_user = asyncHandler(async (req, res, next) => {
   });
 
   if (user) {
+    res.cookie("userinfo", "");
     res.status(201).json({
       _id: user.id,
       username: user.username,
