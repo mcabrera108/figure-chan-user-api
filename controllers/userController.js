@@ -1,41 +1,59 @@
 const asyncHandler = require("express-async-handler");
 const User = require("../models/user");
-const { body } = require("express-validator");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
+const { body } = require("express-validator");
+const { isValidEmail } = require("../utils/isValidEmail");
+const { isValidPassword } = require("../utils/isValidPassword");
 
 exports.register_user = asyncHandler(async (req, res, next) => {
   const { username, email, password } = req.body;
 
+  // Checks if fields are empty. If empty then return 400 status
   if (!username || !email || !password) {
-    res.status(400);
-    throw new Error("Please fill out empty fields");
+    res.status(400).json({
+      errorMessage: "Please fill out empty fields",
+    });
+    return;
   }
 
-  // Sanitizing fields
-  //   body("username")
-  //     .trim()
-  //     .isLength({ min: 5, max: 20 })
-  //     .escape()
-  //     .withMessage("Username must be specified")
-  //     .isAlphanumeric()
-  //     .withMessage("Username does not have alphanumeric characters");
+  // Validate and Sanitize Fields
+  body("email")
+    .trim()
+    .isEmail()
+    .normalizeEmail()
+    .escape()
+    .withMessage("Email is invalid.");
+  body("username")
+    .trim()
+    .isLength({ max: 50 })
+    .escape()
+    .withMessage("Username is too long.");
+  body("password")
+    .trim()
+    .isLength({ min: 6 })
+    .escape()
+    .withMessage("Password is too short.");
 
-  //   body("email").trim().escape();
-
-  //   console.log("Made it through check two");
-  //   body("password")
-  //     .trim()
-  //     .isLength({ min: 6, max: 20 })
-  //     .escape()
-  //     .withMessage("Password must be specified")
-  //     .isAlphanumeric()
-  //     .withMessage("Password does not have alphanumeric characters");
-
+  // Checks if Email is valid. If not then return 401 status
+  if (isValidEmail(email) === false) {
+    res.status(401).json({
+      errorMessage: "Invalid Email format was given. Please check your email.",
+    });
+    return;
+  } else if (isValidPassword(password) === false) {
+    res.status(401).json({
+      errorMessage:
+        "Invalid Password was given. Please check your inputted password.",
+    });
+    return;
+  }
   const userExists = await User.findOne({ username: username });
   if (userExists) {
-    res.status(400);
-    throw new Error("User already exists");
+    res.status(400).json({
+      errorMessage: "User already exists",
+    });
+    return;
   }
 
   const salt = await bcrypt.genSalt(10);
@@ -48,7 +66,6 @@ exports.register_user = asyncHandler(async (req, res, next) => {
   });
 
   if (user) {
-    res.cookie("userinfo", "");
     res.status(201).json({
       _id: user.id,
       username: user.username,
@@ -57,8 +74,10 @@ exports.register_user = asyncHandler(async (req, res, next) => {
       redirectUrl: "/",
     });
   } else {
-    res.status(400);
-    throw new Error("Invalid User Data");
+    res.status(400).json({
+      errorMessage: "Invalid User Data",
+    });
+    return;
   }
 });
 
@@ -66,28 +85,27 @@ exports.login_user = asyncHandler(async (req, res, next) => {
   const { username, password } = req.body;
 
   if (!username || !password) {
-    res.status(400);
-    throw new Error("Please add all fields");
+    res.status(400).json({
+      errorMessage: "Please add all fields",
+    });
+    return;
   }
 
-  //   body("username")
-  //     .trim()
-  //     .isLength({ min: 5, max: 20 })
-  //     .escape()
-  //     .withMessage("Username must be specified")
-  //     .isAlphanumeric()
-  //     .withMessage("Username does not have alphanumeric characters");
-
-  //   body("password")
-  //     .trim()
-  //     .isLength({ min: 6, max: 20 })
-  //     .escape()
-  //     .withMessage("Password must be specified")
-  //     .isAlphanumeric()
-  //     .withMessage("Password does not have alphanumeric characters");
+  // Validate and Sanitize Fields
+  body("username")
+    .trim()
+    .isLength({ max: 50 })
+    .escape()
+    .withMessage("Username is too long.");
+  body("password")
+    .trim()
+    .isLength({ min: 6 })
+    .escape()
+    .withMessage("Password is too short.");
 
   const user = await User.findOne({ username: username });
 
+  // Compare User Inputted Password with Hashed Password
   if (user && (await bcrypt.compare(password, user.password))) {
     res.json({
       _id: user.id,
@@ -97,8 +115,11 @@ exports.login_user = asyncHandler(async (req, res, next) => {
       redirectUrl: "/",
     });
   } else {
-    res.status(400);
-    throw new Error("Invalid Credentials");
+    res.status(400).json({
+      errorMessage:
+        "Incorrect Credentials. Please input correct username and password.",
+    });
+    return;
   }
 });
 
